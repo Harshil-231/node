@@ -1,0 +1,113 @@
+______________________________________________________________________________________________________________
+ Task :=> 1 fetching data
+______________________________________________________________________________________________________________
+
+_______________user.js_________
+
+console.log("user file loaded..")
+var userName ="Ram"
+var userAge = 23
+
+const printUserData = (a)=>{
+    console.log("print user data dunction called from use,js file..",a)
+}
+
+module.exports ={
+userName,userAge,printUserData
+}
+
+_______app.js__________
+
+console.log("Hello")
+var user = require("./user")
+console.log(user)
+console.log(user.userName)
+console.log(user.userAge)
+user.printUserData(100)
+
+
+______________________________________________________________________________________________________
+Task:=>2 Tried and successfully managed to link API with react file
+_______________________________________________________________________________________________________
+
+___________app.js_______________
+
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+app.use(express.json()); // ✅ Enable JSON parsing
+
+let users = []; // ✅ Array to store users
+
+// ✅ Fix GET request for `/user`
+app.get("/user", (req, res) => {
+    res.json({
+        message: "User API called",
+        data: users, // ✅ Corrected from `user` to `users`
+    });
+});
+
+// ✅ Fix POST request for `/user`
+app.post("/user", (req, res) => {
+    const newUser = { ...req.body, _id: users.length + 1 }; // Assign an ID
+    users.push(newUser);
+    res.status(201).json({ message: "User added", user: newUser });
+});
+
+// ✅ Fix DELETE request
+app.delete("/user/:id", (req, res) => {
+    const { id } = req.params;
+    users = users.filter(user => user._id !== parseInt(id));
+    res.json({ message: `User ${id} deleted` });
+});
+
+// ✅ Start the server
+const PORT = 3200;
+app.listen(PORT, () => {
+    console.log(`Server started on port ${PORT}`);
+});
+
+
+_____________________________________________________________________________________________________________
+Task:=> 3 employee data set
+_____________________________________________________________________________________________________________
+
+const express = require("express")
+const app = express()
+
+app.get("/employee", (req, res) => {
+    res.json({
+        message: "Employee info",
+        data: [
+            {
+                eName: "Lucky", eAge: "21", eContactNo: "90167 72742"
+            },
+            {
+                eName: "Sujal", eAge: "22", eContactNo: "94095 31483"
+            },
+            {
+                eName: "Laxman", eAge: "21", eContactNo: "88499 49974"
+            },
+            {
+                eName: "Harshil", eAge: "21", eContactNo: "82385 06893"
+            },
+            {
+                eName: "Dhruv", eAge: "21", eContactNo: "63558 72032"
+            },
+            {
+                eName: "Sunil", eAge: "21", eContactNo: "84880 62233"
+            },
+        ]
+    })
+})
+//server creation..
+const PORT = 3200
+app.listen(PORT, () => {
+    console.log("server started on port", PORT)
+
+})
+
+
+
