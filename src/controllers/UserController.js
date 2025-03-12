@@ -1,62 +1,62 @@
 const userModel = require("../models/UserModel")
 const bcrypt = require("bcrypt")
+const mailUtil = require("../utils/MailUtil")
 
 const loginUser = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        console.log("Login attempt for:", email); // 🛠 Debugging log
-
-        // Find user by email
-        const foundUserFromEmail = await userModel.findOne({ email }).populate('roleId');
-
-        console.log("Found user:", foundUserFromEmail); // 🛠 Debugging log
-
-        // If user doesn't exist, return error
-        if (!foundUserFromEmail) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Compare passwords
+   
+    const email = req.body.email;
+    const password = req.body.password;
+ 
+    const foundUserFromEmail = await userModel.findOne({ email: email }).populate("roleId")
+    console.log(foundUserFromEmail);
+   
+    if (foundUserFromEmail != null) {
+        
         const isMatch = bcrypt.compareSync(password, foundUserFromEmail.password);
-
-        if (!isMatch) {
-            return res.status(401).json({ message: "Invalid password" });
+   
+        if (isMatch == true) {
+            res.status(200).json({
+                message: "login success",
+                data: foundUserFromEmail,
+            });
+        } else {
+            res.status(404).json({
+                message: "invalid cred..",
+            });
         }
-
-        // Login success
-        res.status(200).json({
-            message: "Login successful",
-            data: foundUserFromEmail,
+    } else {
+        res.status(404).json({
+            message: "Email not found..",
         });
-
-    } catch (error) {
-        console.error("Error during login:", error);
-        res.status(500).json({ message: "Server error", error });
     }
 };
 
+
 const signup = async (req, res) => {
+
     try {
-        const salt = bcrypt.genSaltSync(10)
 
-        const hashedPassword = bcrypt.hashSync(req.body.password, salt)
-        req.body.password = hashedPassword
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(req.body.password, salt);
+        req.body.password = hashedPassword;
+        const createdUser = await userModel.create(req.body);
 
-        const createdUser = await userModel.create(req.body)
+
+        await mailUtil.sendingMail(createdUser.email, "welcome to eadvertisement", "this is welcome mail")
 
         res.status(201).json({
-            message: "user created successfully",
-            data: createdUser
-        })
+            message: "user created..",
+            data: createdUser,
+        });
     } catch (err) {
         console.log(err)
         res.status(500).json({
             message: "error",
-            data: err
-        })
+            data: err,
+        });
     }
-}
+};
+
 
 
 
@@ -123,6 +123,18 @@ const getUserById = async (req, res) => {
     )
 }
 
+app.get("/api/user/profile", async (req, res) => {
+    try {
+        const userId = req.user.id; // Assuming authentication middleware sets `req.user`
+        const user = await User.findById(userId).select("-password"); // Fetch user, exclude password
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.json(user);
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
 
 module.exports = {
     getAllUsers, addUser, deleteUser, getUserById, addUser1, loginUser, signup
