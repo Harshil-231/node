@@ -8,6 +8,6 @@ const stateSchema = new Schema({
         unique: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
 })
 module.exports = mongoose.model('State', stateSchema)

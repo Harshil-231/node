@@ -11,7 +11,7 @@ const roleRoutes = require("./src/routes/RoleRoutes")
 app.use(roleRoutes)
 
 const userRoutes = require("./src/routes/UserRoutes")
-app.use(userRoutes)
+app.use( userRoutes)
 
 const ownerRoutes = require("./src/routes/OwnerRoutes")
 app.use(ownerRoutes)
