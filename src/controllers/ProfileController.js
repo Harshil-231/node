@@ -1,160 +1,130 @@
-const profileModel = require("../models/ProfileModel");
+const Profile = require("../models/ProfileModel");
 const multer = require("multer");
 const path = require("path");
-const cloudinaryUtil = require("../utils/CloudanryUtil");
-//storage engine
+const cloudinaryUtil = require("../utils/CloudinaryUtil");
+const mongoose = require("mongoose");
 
+// ⚡ Multer Storage Configuration (Temporary Storage Before Upload)
 const storage = multer.diskStorage({
     destination: "./uploads",
     filename: function (req, file, cb) {
-        cb(null, file.originalname);
+        cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
     },
 });
 
-//multer no object start thayo
+const upload = multer({ storage }).single("image");
 
-const upload = multer({
-    storage: storage,
-}).single("image");
-
-const addprofile = async (req, res) => {
+// 🎯 1️⃣ Add a New Profile
+const addProfile = async (req, res) => {
     try {
-        const savedHording = await hordingModel.create(req.body);
-        res.status(201).json({
-            message: "Hording added successfully",
-            data: savedHording,
+        const { userId, fullName, phone, address } = req.body;
+
+        // Validate userId
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: "Invalid user ID format" });
+        }
+
+        const profileExists = await Profile.findOne({ userId });
+        if (profileExists) {
+            return res.status(400).json({ message: "Profile already exists for this user" });
+        }
+
+        const newProfile = await Profile.create({
+            userId,
+            fullName,
+            phone,
+            address,
         });
+
+        res.status(201).json({ message: "Profile created successfully", data: newProfile });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: "Error adding profile", error: err.message });
     }
 };
 
-const getAllHordings = async (req, res) => {
+// 🎯 2️⃣ Get Profile by User ID
+const getProfileByUserId = async (req, res) => {
     try {
-        const hordings = await hordingModel
-            .find()
-            .populate("stateId cityId areaId userId");
-        if (hordings.length === 0) {
-            res.status(404).json({ message: "No hordings found" });
-        } else {
-            res.status(200).json({
-                message: "Hording found successfully",
-                data: hordings,
-            });
+        const { userId } = req.params;
+
+        // Validate userId
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: "Invalid user ID format" });
         }
+
+        const profile = await Profile.findOne({ userId }).populate("userId", "email role");
+        if (!profile) {
+            return res.status(404).json({ message: "Profile not found" });
+        }
+
+        res.status(200).json({ message: "Profile fetched successfully", data: profile });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: "Error fetching profile", error: err.message });
     }
 };
-const getAllHordingsByUserId = async (req, res) => {
+
+// 🎯 3️⃣ Update Profile
+const updateProfile = async (req, res) => {
     try {
-        const hordings = await hordingModel
-            .find({ userId: req.params.userId })
-            .populate("stateId cityId areaId userId");
-        if (hordings.length === 0) {
-            res.status(404).json({ message: "No hordings found" });
-        } else {
-            res.status(200).json({
-                message: "Hording found successfully",
-                data: hordings,
-            });
+        const { userId } = req.params;
+
+        // Validate userId
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: "Invalid user ID format" });
         }
+
+        const updatedProfile = await Profile.findOneAndUpdate(
+            { userId },
+            req.body,
+            { new: true }
+        );
+
+        if (!updatedProfile) {
+            return res.status(404).json({ message: "Profile not found" });
+        }
+
+        res.status(200).json({ message: "Profile updated successfully", data: updatedProfile });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: "Error updating profile", error: err.message });
     }
 };
 
-// const addHordingWithFile = async (req, res) => {
-//   upload(req, res, (err) => {
-//     if (err) {
-//       res.status(500).json({
-//         message: err.message,
-//       });
-//     } else {
-//       // database data store
-//       //cloundinary
-//       console.log(req.body);
-//       res.status(200).json({
-//         message: "File uploaded successfully",
-//         data: req.file,
-//       });
-//     }
-//   });
-// };
-
-const addHordingWithFile = async (req, res) => {
+// 🎯 4️⃣ Upload Profile Picture to Cloudinary
+const uploadProfilePicture = async (req, res) => {
     upload(req, res, async (err) => {
         if (err) {
-            console.log(err);
-            res.status(500).json({
-                message: err.message,
-            });
-        } else {
-            // database data store
-            //cloundinary
+            return res.status(500).json({ message: "File upload error", error: err.message });
+        }
 
-            const cloundinaryResponse = await cloudinaryUtil.uploadFileToCloudinary(
-                req.file
+        try {
+            if (!req.file) {
+                return res.status(400).json({ message: "No file uploaded" });
+            }
+
+            // Upload to Cloudinary
+            const cloudinaryResponse = await cloudinaryUtil.uploadFileToCloudinary(req.file.path);
+
+            // Update profile with image URL
+            const updatedProfile = await Profile.findOneAndUpdate(
+                { userId: req.body.userId },
+                { profileImage: cloudinaryResponse.secure_url },
+                { new: true }
             );
-            console.log(cloundinaryResponse);
-            console.log(req.body);
 
-            //store data in database
-            req.body.hordingURL = cloundinaryResponse.secure_url;
-            const savedHording = await hordingModel.create(req.body);
+            if (!updatedProfile) {
+                return res.status(404).json({ message: "Profile not found" });
+            }
 
-            res.status(200).json({
-                message: "hording saved successfully",
-                data: savedHording,
-            });
+            res.status(200).json({ message: "Profile image updated", data: updatedProfile });
+        } catch (err) {
+            res.status(500).json({ message: "Error uploading image", error: err.message });
         }
     });
 };
 
-const updateHording = async (req, res) => {
-    //update tablename set  ? where id = ?
-    //update new data -->req.body
-    //id -->req.params.id
-
-    try {
-        const updatedHording = await hordingModel.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
-        res.status(200).json({
-            message: "Hording updated successfully",
-            data: updatedHording,
-        });
-    } catch (err) {
-        res.status(500).json({
-            message: "error while update hording",
-            err: err,
-        });
-    }
-};
-
-const getHordingById = async (req, res) => {
-    try {
-        const hording = await hordingModel.findById(req.params.id);
-        if (!hording) {
-            res.status(404).json({ message: "No hording found" });
-        } else {
-            res.status(200).json({
-                message: "Hording found successfully",
-                data: hording,
-            });
-        }
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
 module.exports = {
-    addHording,
-    getAllHordings,
-    addHordingWithFile,
-    getAllHordingsByUserId,
-    updateHording,
-    getHordingById
+    addProfile,
+    getProfileByUserId,
+    updateProfile,
+    uploadProfilePicture,
 };

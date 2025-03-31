@@ -1,8 +1,11 @@
-const routes = require('express').Router();
-const ownerController = require('../controllers/OwnerController');
+const express = require("express");
+const router = express.Router();
+const OwnerController = require("../controllers/OwnerController");
 
-routes.post('/addowner', ownerController.addOwner);
-routes.get('/getowners', ownerController.getOwners);
-routes.delete('/:id', ownerController.deleteOwnerById);
+router.post("/", OwnerController.createOwner);
+router.get("/", OwnerController.getAllOwners);
+router.get("/:id", OwnerController.getOwnerById);
+router.put("/:id", OwnerController.updateOwner);
+router.delete("/:id", OwnerController.deleteOwner);
 
-module.exports = routes;
+module.exports = router;

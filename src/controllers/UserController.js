@@ -1,103 +1,250 @@
-//users table.. -->userModel
-const userModel = require("../models/UserModel");
+const Owner = require("../models/OwnerModel");
+const Customer = require("../models/CustomerModel");
+const Staff = require("../models/StaffModel");
+const RoleModel = require("../models/RoleModel");  // Corrected import
 const bcrypt = require("bcrypt");
-const mailUtil = require("../utils/MailUtil")
+const jwt = require("jsonwebtoken");
+const cloudinaryUtil = require("../utils/CloudinaryUtil");
+const mailUtil = require("../utils/MailUtil"); // Import the mail utility
+const mongoose = require("mongoose");
 
-const loginUser = async (req, res) => {
-  //req.body email and password: password
+const signup = async (req, res) => {
+  console.log("Signup Request Body:", req.body); // Add this line
+  const { roleId } = req.body;
 
-  //password -->plain -->db -->encrypted
-  //bcrypt  --> plain,enc --> match : true
-  const email = req.body.email;
-  const password = req.body.password;
-  //select * from users where email =? and password = ?
-  //userModel.find({email:email,password:password})
-  //email --> object -->abc --{passwird:hashedPasseord}
-  //normal passwoed compare -->
-
-  //const foundUserFromEmail = userModel.findOne({email:req.body.email})
-  const foundUserFromEmail = await userModel.findOne({ email: email }).populate("roleId")
-  console.log(foundUserFromEmail);
-  //check if email is exist or not//
-  if (foundUserFromEmail != null) {
-    //password
-    //normal -plain req.bodyy --- databse -->match  --> true | false
-    //const isMatch = bcrypt.compareSync(req.body.password,foundUserFromEmail.password)
-    const isMatch = bcrypt.compareSync(password, foundUserFromEmail.password);
-    //true | false
-    if (isMatch == true) {
-      res.status(200).json({
-        message: "login success",
-        data: foundUserFromEmail,
-      });
-    } else {
-      res.status(404).json({
-        message: "invalid cred..",
-      });
+  try {
+    const role = await RoleModel.findById(roleId);
+    if (!role) {
+      return res.status(400).json({ message: "Invalid role selected" });
     }
-  } else {
-    res.status(404).json({
-      message: "Email not found..",
-    });
+
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const userData = {
+      ...req.body,
+      password: hashedPassword,
+    };
+
+    let newUser;
+    switch (role.name) {  // Use role.name for comparison
+      case "customer":
+        newUser = new Customer(userData);
+        break;
+      case "owner":
+        newUser = new Owner(userData);
+        break;
+      case "staff":
+        newUser = new Staff(userData);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid role" });
+    }
+
+    await newUser.save();
+
+    try {
+      await mailUtil.sendingMail(
+        newUser.email,
+        "Welcome to Our Salon App!",
+        "Thank you for signing up!  We're excited to have you."
+      );
+      console.log("Welcome email sent to:", newUser.email);
+    } catch (mailError) {
+      console.error("Error sending welcome email:", mailError);
+      // Consider logging the error, but don't block the signup process
+    }
+
+    res.status(201).json({ message: "User registered successfully", data: newUser });
+  } catch (error) {
+    console.error("Signup error:", error);
+    res.status(500).json({ message: "Signup error", error: error.message });
   }
 };
 
-const signup = async (req, res) => {
-  //try catch if else...
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
   try {
-    //password encrupt..
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(req.body.password, salt);
-    req.body.password = hashedPassword;
-    const createdUser = await userModel.create(req.body);
+    let foundUser;
+    let userModel;
 
-    //send mail to user...
-    //const mailResponse = await mailUtil.sendingMail(createdUser.email,"welcome to eadvertisement","this is welcome mail")
-    await mailUtil.sendingMail(createdUser.email,"welcome to eadvertisement","this is welcome mail")
+    foundUser = await Owner.findOne({ email });
+    userModel = Owner;
 
-    res.status(201).json({
-      message: "user created..",
-      data: createdUser,
+    if (!foundUser) {
+      foundUser = await Customer.findOne({ email });
+      userModel = Customer;
+
+      if (!foundUser) {
+        foundUser = await Staff.findOne({ email });
+        userModel = Staff;
+      }
+    }
+
+    if (!foundUser) {
+      return res.status(404).json({ message: "Invalid credentials" }); // Changed message
+    }
+
+    const isMatch = await bcrypt.compare(password, foundUser.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" }); // Changed message
+    }
+
+    const role = await RoleModel.findById(foundUser.roleId);
+
+    if (!role) {
+      return res.status(500).json({ message: "Role not found for user" });
+    }
+    const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h", // Token expires in 1 hour
+    });
+    // Send the role name in the response
+    res.status(200).json({
+      message: "Login success",
+      data: foundUser,
+      role: role.name,
+      token: token,
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Login error", error: error.message });
+  }
+};
+
+const addUser = async (req, res) => {
+  res.status(400).json({ message: "Use signup function for user creation." });
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    const Owners = await Owner.find();
+    const customers = await Customer.find();
+    const staff = await Staff.find();
+
+    const allUsers = [...Owners, ...customers, ...staff];
+
+    res.status(200).json({
+      message: "Users fetched successfully",
+      data: allUsers,
     });
   } catch (err) {
-    console.log(err)
     res.status(500).json({
-      message: "error",
+      message: "Error fetching users",
       data: err,
     });
   }
 };
 
-const addUser = async (req, res) => {
-  //req.body...
-  const savedUser = await userModel.create(req.body);
-  res.json({
-    message: "User Saved Successfully",
-    data: savedUser,
-  });
-};
-const getAllUsers = async (req, res) => {
-  const users = await userModel.find().populate("roleId");
-  res.json({
-    message: "User fetched successfully..",
-    data: users,
-  });
-};
-
 const getUserById = async (req, res) => {
-  const foundUser = await userModel.findById(req.params.id);
-  res.json({
-    message: "user fetched successfully..",
-    data: foundUser,
-  });
+  try {
+    let foundUser;
+
+    // Search for the user in all collections
+    foundUser = await Owner.findById(req.params.id);
+    if (!foundUser) {
+      foundUser = await Customer.findById(req.params.id);
+      if (!foundUser) {
+        foundUser = await Staff.findById(req.params.id);
+      }
+    }
+
+    if (foundUser) {
+      res.status(200).json({
+        message: "User fetched successfully",
+        data: foundUser,
+      });
+    } else {
+      res.status(404).json({
+        message: "User not found",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      message: "Error fetching user",
+      data: err,
+    });
+  }
 };
 
 const deleteUserById = async (req, res) => {
-  const deletedUser = await userModel.findByIdAndDelete(req.params.id);
-  res.json({
-    message: "user deleted Successfully..",
-    data: deletedUser,
-  });
+  // This function needs to search in all collections before deleting
+  try {
+    let deletedUser;
+    deletedUser = await Owner.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      deletedUser = await Customer.findByIdAndDelete(req.params.id);
+      if (!deletedUser) {
+        deletedUser = await Staff.findByIdAndDelete(req.params.id);
+      }
+    }
+    if (deletedUser) {
+      res.status(200).json({ message: "User deleted successfully", data: deletedUser });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// usercontroller.js
+const getUserProfile = async (req, res) => {
+  try {
+    console.log("getUserProfile called for userId:", req.userId); // Log the user ID
+
+    let user;
+    user = await Owner.findById(req.userId).select("-password");
+    if (!user) {
+      user = await Customer.findById(req.userId).select("-password");
+      if (!user) {
+        user = await Staff.findById(req.userId).select("-password");
+      }
+    }
+
+    if (!user) {
+      console.log("User not found for userId:", req.userId); // Log if user is not found
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("User found:", user); // Log the user object
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user profile:", error); // Log the full error
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+const uploadUserProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const cloudinaryResponse = await cloudinaryUtil.uploadFileToCloudinary(req.file);
+
+    let user;
+    user = await Owner.findById(req.userId);
+    if (!user) {
+      user = await Customer.findById(req.userId);
+      if (!user) {
+        user = await Staff.findById(req.userId);
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.profileImage = cloudinaryResponse.secure_url;
+    await user.save();
+
+    res.status(200).json({ message: "Profile image uploaded successfully", data: { profileImage: user.profileImage } });
+  } catch (error) {
+    console.error("Error uploading profile image:", error);
+    res.status(500).json({ message: "Error uploading profile image", error: error.message });
+  }
 };
 
 module.exports = {
@@ -107,11 +254,6 @@ module.exports = {
   deleteUserById,
   signup,
   loginUser,
+  getUserProfile,
+  uploadUserProfileImage
 };
-
-//addUser
-//getUser
-//deleteUser
-//getUserById
-
-//exports
