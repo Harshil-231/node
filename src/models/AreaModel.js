@@ -6,7 +6,7 @@ const areaSchema = new Schema({
     name: {
         type: String,
         required: true,
-        unique: true
+        
     },
     cityId: {
         type: Schema.Types.ObjectId,
@@ -19,7 +19,7 @@ const areaSchema = new Schema({
     pincode: {
         type: Number,
         required: true,
-        unique: true
+    
     }
 }, {
     timestamps: true

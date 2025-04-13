@@ -3,14 +3,36 @@ require('dotenv').config(); // Load environment variables from .env
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const multer = require('multer'); // Import Multer
+const path = require('path');   // Import path
 
 const app = express();
+
+// Configure Multer for file storage
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Store uploaded files in the 'uploads' directory
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)); // Rename the file
+    }
+});
+
+const upload = multer({ storage: storage }); // Multer instance
+
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public')); // Serve static files (if needed)
+// Serve uploads folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // import role routes
 const roleRoutes = require("./src/routes/RoleRoutes");
 app.use(roleRoutes);
+
+const categoryRoutes = require("./src/routes/CategoryRoutes");
+app.use("/category",categoryRoutes);
 
 const userRoutes = require("./src/routes/UserRoutes");
 app.use(userRoutes);
@@ -28,10 +50,10 @@ const areaRoutes = require("./src/routes/AreaRoutes");
 app.use("/area", areaRoutes);
 
 const salonRoutes = require("./src/routes/SalonRoutes");
-app.use("/salon", salonRoutes);
+app.use("/salons", salonRoutes);
 
 const OwnerRoutes = require("./src/routes/OwnerRoutes");
-app.use("/salon-owners", OwnerRoutes);
+app.use("/owners", OwnerRoutes);
 
 const customerRoutes = require("./src/routes/CustomerRoutes");
 app.use("/customers", customerRoutes);

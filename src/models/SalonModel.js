@@ -1,36 +1,73 @@
-const mongoose = require('mongoose');
+// models/SalonModel.js
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const salonSchema = new Schema({
-    name: {
+    salonName: {
         type: String,
         required: true,
-        unique: true
+        trim: true,
     },
-    ownerId: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+    businessName: {
+        type: String,
+        trim: true,
     },
     address: {
         type: String,
-        // required: true
+        required: true,
+        trim: true,
     },
-    contact: {
+    city: {
         type: String,
         required: true,
-        // unique: true
+        trim: true,
     },
-    // servicesOffered: [{
-    //     type: Schema.Types.ObjectId,
-    //     ref: "Service"
-    // }],
-    rating: {
-        type: Number,
-        default: 0
-    }
+    state: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    postalCode: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    country: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    email: {
+        type: String,
+        required: true,
+        trim: true,
+        lowercase: true,
+    },
+    website: {
+        type: String,
+        trim: true,
+    },
+    owner: {  // Add the owner field
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'owner',  // Reference to the Owner model
+        required: false
+    },
+    // serviceType: {  
+    //     type: String,
+    //     enum: ["male", "female", "unisex"],
+    //     default: "unisex" 
+    // },
+    // price: { 
+    //     type: Number,
+    //     default: 0  
+    // }
 }, {
-    timestamps: true
+    timestamps: true, 
 });
 
-module.exports = mongoose.model('Salon', salonSchema);
+module.exports = mongoose.model("Salon", salonSchema);

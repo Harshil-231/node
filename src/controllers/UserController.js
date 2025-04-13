@@ -6,10 +6,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cloudinaryUtil = require("../utils/CloudinaryUtil");
 const mailUtil = require("../utils/MailUtil"); // Import the mail utility
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
 
 const signup = async (req, res) => {
-  console.log("Signup Request Body:", req.body); // Add this line
+  // console.log("Signup Request Body:", req.body); 
   const { roleId } = req.body;
 
   try {
@@ -50,7 +50,6 @@ const signup = async (req, res) => {
       console.log("Welcome email sent to:", newUser.email);
     } catch (mailError) {
       console.error("Error sending welcome email:", mailError);
-      // Consider logging the error, but don't block the signup process
     }
 
     res.status(201).json({ message: "User registered successfully", data: newUser });
@@ -96,7 +95,7 @@ const loginUser = async (req, res) => {
       return res.status(500).json({ message: "Role not found for user" });
     }
     const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h", // Token expires in 1 hour
+      expiresIn: "24h", // Token expires in 1 hour
     });
     // Send the role name in the response
     res.status(200).json({
@@ -188,64 +187,8 @@ const deleteUserById = async (req, res) => {
   }
 };
 
-// usercontroller.js
-const getUserProfile = async (req, res) => {
-  try {
-    console.log("getUserProfile called for userId:", req.userId); // Log the user ID
-
-    let user;
-    user = await Owner.findById(req.userId).select("-password");
-    if (!user) {
-      user = await Customer.findById(req.userId).select("-password");
-      if (!user) {
-        user = await Staff.findById(req.userId).select("-password");
-      }
-    }
-
-    if (!user) {
-      console.log("User not found for userId:", req.userId); // Log if user is not found
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    console.log("User found:", user); // Log the user object
-    res.json(user);
-  } catch (error) {
-    console.error("Error fetching user profile:", error); // Log the full error
-    res.status(500).json({ message: error.message });
-  }
-};
 
 
-const uploadUserProfileImage = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
-
-    const cloudinaryResponse = await cloudinaryUtil.uploadFileToCloudinary(req.file);
-
-    let user;
-    user = await Owner.findById(req.userId);
-    if (!user) {
-      user = await Customer.findById(req.userId);
-      if (!user) {
-        user = await Staff.findById(req.userId);
-      }
-    }
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.profileImage = cloudinaryResponse.secure_url;
-    await user.save();
-
-    res.status(200).json({ message: "Profile image uploaded successfully", data: { profileImage: user.profileImage } });
-  } catch (error) {
-    console.error("Error uploading profile image:", error);
-    res.status(500).json({ message: "Error uploading profile image", error: error.message });
-  }
-};
 
 module.exports = {
   addUser,
@@ -254,6 +197,4 @@ module.exports = {
   deleteUserById,
   signup,
   loginUser,
-  getUserProfile,
-  uploadUserProfileImage
 };

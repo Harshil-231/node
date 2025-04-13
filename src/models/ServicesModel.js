@@ -21,6 +21,11 @@ const serviceSchema = new Schema({
     },
     description: {
         type: String
+    },
+    categoryId: { // ADD THIS FIELD
+        type: Schema.Types.ObjectId,
+        ref: "category", // Corrected ref value, using lowercase "category" as in your model
+        required: true
     }
 }, { timestamps: true });
 

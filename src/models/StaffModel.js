@@ -9,7 +9,7 @@ const userSchema = new Schema({
     experience: { type: String },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
     status: { type: Boolean },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true },
     password: { type: String, required: true },
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Owner" },
     roleId: {
