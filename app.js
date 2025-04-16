@@ -32,7 +32,7 @@ const roleRoutes = require("./src/routes/RoleRoutes");
 app.use(roleRoutes);
 
 const categoryRoutes = require("./src/routes/CategoryRoutes");
-app.use("/category",categoryRoutes);
+app.use("/category", categoryRoutes);
 
 const userRoutes = require("./src/routes/UserRoutes");
 app.use(userRoutes);
@@ -60,6 +60,10 @@ app.use("/customers", customerRoutes);
 
 const staffRoutes = require("./src/routes/StaffRoutes");
 app.use("/staff", staffRoutes);
+
+const appointmentRoutes = require("./src/routes/AppointmentRoutes");
+app.use( appointmentRoutes);
+
 
 mongoose.connect("mongodb://localhost:27017/sample").then(() => {
     console.log("database created...");

@@ -1,6 +1,6 @@
 const routes = require("express").Router()
 const userController = require("../controllers/UserController")
-const authMiddleware = require("../authMiddleware")
+// const authMiddleware = require("../authMiddleware")
 
 
 // routes.post("/user",userController.addUser1)

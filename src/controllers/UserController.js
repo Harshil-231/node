@@ -81,7 +81,7 @@ const loginUser = async (req, res) => {
 
     if (!foundUser) {
       return res.status(404).json({ message: "Invalid credentials" }); // Changed message
-    }
+      }
 
     const isMatch = await bcrypt.compare(password, foundUser.password);
 
@@ -95,7 +95,7 @@ const loginUser = async (req, res) => {
       return res.status(500).json({ message: "Role not found for user" });
     }
     const token = jwt.sign({ userId: foundUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "24h", // Token expires in 1 hour
+      // expiresIn: "24h", // Token expires in 1 hour
     });
     // Send the role name in the response
     res.status(200).json({

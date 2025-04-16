@@ -5,7 +5,7 @@ const serviceSchema = new Schema({
     salonId: {
         type: Schema.Types.ObjectId,
         ref: "Salon",
-        required: true
+        // required: true
     },
     name: {
         type: String,

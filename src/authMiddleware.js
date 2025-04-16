@@ -18,7 +18,7 @@ const authMiddleware = (req, res, next) => {
     req.userId = decoded.userId; // Store the user ID in the request object
     console.log("req.userId:", req.userId);   // Log the userId being set
     next();
-  }); 
+  });
 };
 
 module.exports = authMiddleware;
