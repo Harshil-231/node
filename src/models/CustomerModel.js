@@ -9,7 +9,6 @@ const userSchema = new Schema({
     gender: {
         type: String,
         enum: ["male", "female", "other"],
-        // required: true,
     },
     experience: { type: String },
     roleId: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
@@ -19,8 +18,7 @@ const userSchema = new Schema({
     dateOfBirth: { type: Date },
     address: { type: String },
     preferredServices: [{ type: String }],
-    profilePicture: { type: String }, // Add this line
-    // ... other customer specific fields
-}, { timestamps: true }); //added timestamp
+    profilePicture: { type: String }, 
+}, { timestamps: true }); 
 
 module.exports = mongoose.model("customer", userSchema);

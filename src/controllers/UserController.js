@@ -1,4 +1,5 @@
 const Owner = require("../models/OwnerModel");
+const Admin = require("../models/AdminModel");
 const Customer = require("../models/CustomerModel");
 const Staff = require("../models/StaffModel");
 const RoleModel = require("../models/RoleModel");  // Corrected import
@@ -34,6 +35,9 @@ const signup = async (req, res) => {
         break;
       case "staff":
         newUser = new Staff(userData);
+        break;
+      case "admin":
+        newUser = new Admin(userData);
         break;
       default:
         return res.status(400).json({ message: "Invalid role" });
@@ -76,6 +80,11 @@ const loginUser = async (req, res) => {
       if (!foundUser) {
         foundUser = await Staff.findOne({ email });
         userModel = Staff;
+
+        if (!foundUser) {
+          foundUser = await Admin.findOne({ email });  // Corrected: Use Admin
+          userModel = Admin; // Corrected: Use Admin
+        }
       }
     }
 

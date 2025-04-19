@@ -22,14 +22,14 @@ const userSchema = new Schema({
     status: {
         type: Boolean
     },
-    email:{
-        type:String,
+    email: {
+        type: String,
     },
-    password:{
-        type:String
+    password: {
+        type: String
     },
-
+    username: { type: String, required: true, unique: true },
 })
 
 
-module.exports = mongoose.model("users", userSchema)
+module.exports = mongoose.model("User", userSchema)

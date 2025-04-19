@@ -37,6 +37,9 @@ app.use("/category", categoryRoutes);
 const userRoutes = require("./src/routes/UserRoutes");
 app.use(userRoutes);
 
+const adminRoutes = require("./src/routes/adminRoutes");
+app.use('/admin', adminRoutes); // Mount the admin routes under /
+
 const servicesRoutes = require("./src/routes/ServicesRoutes");
 app.use("/services", servicesRoutes);
 

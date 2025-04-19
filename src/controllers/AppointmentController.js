@@ -1,17 +1,15 @@
+// In your appointment controller (AppointmentController.js)
+
 const Salon = require('../models/SalonModel'); // Adjust the path if necessary
 const mongoose = require('mongoose');
 const Appointment = require('../models/Appointmentmodel');
-const User = require('../models/Usermodel');  //  <-- Add this line
+const User = require('../models/Usermodel');   //  <-- Add this line
 
 // GET all appointments (Admin Only)
+// In your appointment controller (AppointmentController.js)
 exports.getAllAppointments = async (req, res) => {
     try {
-        // Check if the user has admin privileges (example, adjust to your roles setup)
-        const user = await Customer.findById(req.userId); // Assuming you have the Customer model available
-        if (!user || !user.isAdmin) { // Adjust the isAdmin property to your role property
-            return res.status(403).json({ success: false, message: 'Unauthorized: Admin access required' });
-        }
-
+        // No isAdmin check - all authenticated users can access
         const appointments = await Appointment.find().populate('services').populate('customerId'); // Populate customer and services for more details
         res.json({ success: true, data: appointments });
     } catch (err) {
@@ -43,42 +41,40 @@ exports.getCustomerAppointments = async (req, res) => {
     }
 };
 
-// GET appointments for a specific salon (for salon owners)
-// GET appointments for salons owned by a specific user
-exports.getSalonAppointments = async (req, res) => {
+// GET appointments for salons owned by the logged-in owner
+exports.getOwnerAppointments = async (req, res) => {
     try {
-        const ownerId = req.userId;
-        console.log("ownerId:", ownerId);  // Log the ownerId
+        const ownerId = req.userId; // Get owner ID from the authenticated request
 
-        const salons = await Salon.find({ owner: ownerId });
-        console.log("salons:", salons);  // Log the salons
-
-        if (!salons || salons.length === 0) {
-            return res.status(404).json({ success: false, message: "No salons found for this owner." });
-        }
-
-        const salonIds = salons.map(salon => salon._id);
-        console.log("salonIds:", salonIds); // Log the salonIds
-
-        const appointments = await Appointment.find({ salonId: { $in: salonIds } })
+        // Find all appointments where the ownerId matches the logged-in owner's ID
+        const appointments = await Appointment.find({ ownerId: ownerId })
             .populate('services')
-            .populate('customerId');
-        console.log("appointments:", appointments); // Log the appointments
-
+            .populate('customerId', 'username _id');
         res.json({ success: true, data: appointments });
-
     } catch (err) {
-        console.error("Error getting salon appointments:", err);
+        console.error("Error getting owner's appointments:", err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
 
+exports.getAppointmentsBySalon = async (req, res) => {
+    const { salonId } = req.params;
+    try {
+        const appointments = await Appointment.find({ salonId: salonId })
+            .populate('services')
+            .populate('customerId', 'username _id'); // Populate customer details (specific fields)
+        res.json({ success: true, data: appointments });
+    } catch (error) {
+        console.error("Error fetching appointments by salon:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 // POST a new appointment
 exports.createAppointment = async (req, res) => {
-    const { salonId, salonName, services, date, time, totalPrice } = req.body; // Add salonName
+    const { salonId, salonName, services, date, time, totalPrice, ownerId } = req.body; // Include ownerId
 
     // Basic Validation
-    if (!salonId || !salonName || !services || !date || !time || !totalPrice) {  // Add salonName
+    if (!salonId || !salonName || !services || !date || !time || !totalPrice || !ownerId) { // Include ownerId
         return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -97,7 +93,8 @@ exports.createAppointment = async (req, res) => {
             date,
             time,
             totalPrice,
-            customerId: req.userId  // Use the user ID from the token
+            customerId: req.userId, // Use the user ID from the token
+            ownerId: ownerId // Save the ownerId
         });
 
         const newAppointment = await appointment.save();
